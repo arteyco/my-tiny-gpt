@@ -4,9 +4,322 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TinyGPT — Interactive Anatomy & Playground</title>
-  <!-- Core Style CSS -->
-    <link rel="stylesheet" href="css/mytgptstyles.css">
-  <link rel="stylesheet" href="css/mytgptstyles_dos.css">
+<style>
+  :root {
+    --bg-0: #07080c;
+    --bg-1: #0d1018;
+    --bg-2: #141826;
+    --bg-3: #1b2033;
+    --border: #262c42;
+    --text: #e6e9f2;
+    --text-dim: #9aa3bd;
+    --text-mute: #6b7392;
+    --accent: #7c9cff;
+    --accent-2: #b47cff;
+    --accent-3: #4fd1c5;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --code-bg: #0a0d16;
+    --shadow: 0 10px 30px rgba(0,0,0,.4);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(124,156,255,.12), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(180,124,255,.10), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  code, pre { font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace; }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+  aside {
+    position: sticky; top: 0; height: 100vh;
+    background: linear-gradient(180deg, #0a0d16, #07080c);
+    border-right: 1px solid var(--border);
+    padding: 22px 16px;
+    overflow-y: auto;
+  }
+  aside .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 18px; margin-bottom: 18px;
+  }
+  .brand .logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent));
+    box-shadow: 0 0 20px rgba(124,156,255,.4);
+  }
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+    color: var(--text-mute); margin: 14px 8px 6px;
+  }
+  .nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 8px;
+    color: var(--text-dim); font-size: 14px;
+    transition: all .15s ease;
+  }
+  .nav a:hover { background: var(--bg-2); color: var(--text); }
+  .nav a.active { background: linear-gradient(90deg, rgba(124,156,255,.18), transparent); color: var(--text); }
+  .nav a .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-mute); }
+  .nav a.active .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  main { padding: 40px 48px 80px; max-width: 1200px; }
+  header.hero {
+    padding: 36px 32px; border-radius: 20px;
+    background:
+      radial-gradient(600px 200px at 0% 0%, rgba(124,156,255,.15), transparent 60%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+    position: relative; overflow: hidden;
+  }
+  header.hero h1 { font-size: 34px; margin: 0 0 8px; letter-spacing: -.02em; }
+  header.hero p { color: var(--text-dim); max-width: 720px; margin: 0; }
+  header.hero .tag {
+    display: inline-block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); padding: 4px 10px; border: 1px solid rgba(124,156,255,.35);
+    border-radius: 999px; margin-bottom: 14px;
+  }
+
+  section.block {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 24px;
+    scroll-margin-top: 20px;
+  }
+  section.block h2 {
+    font-size: 22px; margin: 0 0 4px; letter-spacing: -.01em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  section.block h2 .badge {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    padding: 3px 8px; border-radius: 6px;
+    background: rgba(124,156,255,.15); color: var(--accent);
+  }
+  section.block .subtitle { color: var(--text-dim); margin: 0 0 18px; }
+  section.block h3 { font-size: 16px; margin: 22px 0 8px; color: var(--text); }
+  section.block p { color: var(--text-dim); }
+
+  /* Code blocks */
+  .code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.55;
+  }
+  .code .k { color: #c586ff; }
+  .code .f { color: #7cc5ff; }
+  .code .s { color: #a5d6a7; }
+  .code .c { color: #6b7392; font-style: italic; }
+  .code .n { color: #f0c674; }
+  .code .o { color: #ff9d9d; }
+
+  /* Grid helpers */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .card h4 { margin: 0 0 6px; font-size: 14px; color: var(--text); }
+  .card p { margin: 0; font-size: 13px; color: var(--text-dim); }
+
+  /* Token chips */
+  .tokens { display: flex; flex-wrap: wrap; gap: 6px; }
+  .token {
+    padding: 6px 10px; border-radius: 8px;
+    background: var(--bg-3); border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .token .idx { color: var(--text-mute); font-size: 10px; }
+  .token.hi { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .token.new { border-color: var(--good); box-shadow: 0 0 0 1px var(--good) inset; animation: pop .3s ease; }
+  @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  /* Attention matrix */
+  .matrix-wrap { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .matrix {
+    display: grid; gap: 3px;
+    background: var(--bg-2); padding: 10px; border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .cell {
+    width: 28px; height: 28px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: rgba(255,255,255,.6);
+    transition: all .2s ease;
+  }
+  .cell.allowed { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+  .cell.masked { background: #1a1d2c; color: var(--text-mute); }
+
+  /* Pipeline diagram */
+  .pipeline {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 16px; background: var(--bg-2); border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .pipe-node {
+    padding: 10px 14px; border-radius: 10px;
+    background: linear-gradient(180deg, #1a2036, #141826);
+    border: 1px solid var(--border);
+    font-size: 13px; font-weight: 500;
+  }
+  .pipe-node.active { border-color: var(--accent); box-shadow: 0 0 18px rgba(124,156,255,.25); }
+  .pipe-arrow { color: var(--text-mute); font-size: 18px; }
+
+  /* Buttons */
+  .btn {
+    background: linear-gradient(180deg, #2a3356, #1a2036);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 14px; border-radius: 10px;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all .15s ease;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: linear-gradient(180deg, var(--accent), #5a7ae0);
+    border-color: transparent; color: #fff;
+  }
+  .btn.primary:hover { filter: brightness(1.1); color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Interactive panels */
+  .interactive {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 12px;
+  }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+
+  /* Batch table */
+  table.batch {
+    width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  table.batch th, table.batch td {
+    padding: 8px 10px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  table.batch th { color: var(--text-mute); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: .1em; }
+  table.batch td.word { color: var(--accent-3); }
+
+  /* Embedding bars */
+  .emb-bar {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    margin: 4px 0;
+  }
+  .emb-bar .label { width: 70px; color: var(--text-dim); }
+  .emb-bar .bar {
+    height: 14px; border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width .4s ease;
+  }
+  .emb-bar .val { color: var(--text-mute); font-size: 11px; width: 40px; }
+
+  /* Flow arrows */
+  .flow {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px; background: var(--bg-2);
+    border: 1px solid var(--border); border-radius: 12px;
+    flex-wrap: wrap;
+  }
+  .flow .step {
+    padding: 8px 12px; border-radius: 8px;
+    background: var(--bg-3); border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .flow .arrow { color: var(--accent); }
+
+  /* Loss curve */
+  .loss-chart {
+    width: 100%; height: 140px;
+    background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 10px; position: relative; overflow: hidden;
+  }
+  .loss-chart svg { width: 100%; height: 100%; }
+
+  /* Generation Playground Specifics */
+  .gen-input-wrap {
+    display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .gen-input {
+    flex: 1; min-width: 200px;
+    background: var(--bg-3); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 14px; border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    outline: none; transition: border-color .2s;
+  }
+  .gen-input:focus { border-color: var(--accent); }
+  
+  .gen-terminal {
+    background: #05070d; border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    line-height: 1.6; color: var(--text-dim); max-height: 300px; overflow-y: auto;
+    margin-bottom: 16px;
+  }
+  .gen-terminal .step-title { color: var(--accent); font-weight: 600; }
+  .gen-terminal .ctx { color: var(--accent-3); }
+  .gen-terminal .prob { color: var(--warn); }
+  .gen-terminal .sample { color: var(--good); }
+
+  .prob-chart {
+    display: flex; flex-direction: column; gap: 6px; margin: 12px 0;
+  }
+  .prob-row {
+    display: flex; align-items: center; gap: 10px; font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .prob-row .word { width: 80px; text-align: right; color: var(--text-dim); }
+  .prob-row .bar-wrap { flex: 1; height: 16px; background: var(--bg-3); border-radius: 4px; overflow: hidden; }
+  .prob-row .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .5s ease; }
+  .prob-row .pct { width: 50px; color: var(--text-mute); }
+
+  .final-output {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.05), rgba(124, 156, 255, 0.05));
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    border-radius: 12px; padding: 16px; margin-top: 16px;
+  }
+  .final-output h4 { margin: 0 0 10px; color: var(--good); font-size: 14px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg-0); }
+  ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a3356; }
+
+ 
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    aside { position: relative; height: auto; }
+    main { padding: 24px; }
+  }
+</style>
 </head>
 <body>
 <div class="app">
@@ -438,5 +751,286 @@ idx2word = {i: w <span class="k">for</span> w, i <span class="k">in</span> word2
 
 
 
+<script>
+/* ---------------- CORPUS & VOCABULARY ---------------- */
+const rawCorpus = [
+ "hello friends how are you ",
+ "the coffee is very hot ",
+ "my name is castani ",
+ "the roads of Bogota are busy ",
+ "it is raining in Usaquen ",
+ "the train is late again ",
+ "i love eating cakes and drinking coffee ",
+ "jazz is my favorite festival ",
+ "christmas brings lights and sweets ",
+ "santafe won the succer match "
+];
+const fullCorpus = rawCorpus.map(s => s + " <END>");
+const allTokens = fullCorpus.join(" ").split(/\s+/).filter(Boolean);
+const vocab = [...new Set(allTokens)].sort();
+const word2idx = {};
+vocab.forEach((w, i) => word2idx[w] = i);
+const idx2word = {};
+vocab.forEach((w, i) => idx2word[i] = w);
+
+// Populate datalist
+const datalist = document.getElementById('vocabList');
+datalist.innerHTML = vocab.map(w => `<option value="${w}">`).join('');
+
+/* ---------------- BIGRAM MODEL (Simulating the trained LLM) ---------------- */
+const bigrams = {};
+for (let i = 0; i < allTokens.length - 1; i++) {
+  const w1 = allTokens[i];
+  const w2 = allTokens[i + 1];
+  if (!bigrams[w1]) bigrams[w1] = {};
+  bigrams[w1][w2] = (bigrams[w1][w2] || 0) + 1;
+}
+// Normalize to probabilities
+for (const w1 in bigrams) {
+  const total = Object.values(bigrams[w1]).reduce((a, b) => a + b, 0);
+  for (const w2 in bigrams[w1]) {
+    bigrams[w1][w2] /= total;
+  }
+}
+
+function getProbs(word) {
+  if (bigrams[word]) return bigrams[word];
+  // Fallback: uniform if word was never seen as a predecessor
+  const uniform = {};
+  const p = 1.0 / vocab.length;
+  vocab.forEach(w => uniform[w] = p);
+  return uniform;
+}
+
+function sampleWord(probs) {
+  const r = Math.random();
+  let cum = 0;
+  for (const [w, p] of Object.entries(probs)) {
+    cum += p;
+    if (r <= cum) return w;
+  }
+  return Object.keys(probs)[0];
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------------- VOCABULARY DEMO UI ---------------- */
+function buildVocab() {
+  renderVocab();
+}
+function shuffleVocab() {
+  // Just visually shuffle the display order, keeping IDs consistent
+  const shuffled = [...vocab].sort(() => Math.random() - 0.5);
+  const el = document.getElementById('vocabDisplay');
+  el.innerHTML = shuffled.map(w =>
+    `<div class="token" onclick="this.classList.toggle('hi')">${w}<span class="idx">#${word2idx[w]}</span></div>`
+  ).join('');
+}
+function renderVocab() {
+  const el = document.getElementById('vocabDisplay');
+  el.innerHTML = vocab.map(w =>
+    `<div class="token" onclick="this.classList.toggle('hi')">${w}<span class="idx">#${word2idx[w]}</span></div>`
+  ).join('');
+  document.getElementById('vocabStats').innerHTML =
+    `<b>Vocab size:</b> ${vocab.length} · <b>Total tokens in corpus:</b> ${allTokens.length}`;
+}
+
+/* ---------------- BATCH DEMO ---------------- */
+function sampleBatch() {
+  const blockSize = 6;
+  const rows = [];
+  for (let i = 0; i < 5; i++) {
+    const start = Math.floor(Math.random() * (allTokens.length - blockSize));
+    const x = allTokens.slice(start, start + blockSize);
+    const y = allTokens.slice(start + 1, start + blockSize + 1);
+    rows.push({ x, y });
+  }
+  const html = `<table class="batch">
+    <thead><tr><th>Row</th><th>x (context)</th><th>y (target)</th></tr></thead>
+    <tbody>${rows.map((r, i) => `
+      <tr>
+        <td style="color:var(--text-mute)">${i}</td>
+        <td class="word">${r.x.map(w => `<span style="color:var(--accent-3)">${w}</span>`).join(' ')}</td>
+        <td class="word">${r.y.map(w => `<span style="color:var(--warn)">${w}</span>`).join(' ')}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  document.getElementById('batchTable').innerHTML = html;
+}
+
+/* ---------------- ATTENTION MASK ---------------- */
+function setMaskSize(T) {
+  const el = document.getElementById('maskMatrix');
+  el.style.gridTemplateColumns = `repeat(${T}, 28px)`;
+  let html = '';
+  for (let i = 0; i < T; i++) {
+    for (let j = 0; j < T; j++) {
+      const allowed = j <= i;
+      html += `<div class="cell ${allowed ? 'allowed' : 'masked'}">${allowed ? '✓' : '−'}</div>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+/* ---------------- LOSS CURVE ---------------- */
+function drawLoss() {
+  const svg = document.getElementById('lossSvg');
+  const W = 600, H = 140;
+  const N = 60;
+  const pts = [];
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
+    const base = 8 * Math.exp(-3 * t) + 1.2 + (Math.random() - 0.5) * 0.4 * (1 - t);
+    pts.push([i * (W / (N - 1)), H - (base / 9) * H]);
+  }
+  const d = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const area = d + ` L ${W},${H} L 0,${H} Z`;
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="#7c9cff" stop-opacity=".5"/>
+        <stop offset="100%" stop-color="#7c9cff" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${area}" fill="url(#g1)"/>
+    <path d="${d}" fill="none" stroke="#7c9cff" stroke-width="2"/>
+  `;
+}
+
+/* ---------------- INTERACTIVE GENERATION ---------------- */
+let isGenerating = false;
+
+async function startGeneration() {
+  if (isGenerating) return;
+  
+  const input = document.getElementById('genInput').value.trim().toLowerCase();
+  if (!input || !word2idx.hasOwnProperty(input)) {
+    alert(`Please enter a valid word from the vocabulary. (e.g., ${vocab[Math.floor(Math.random()*5)]})`);
+    return;
+  }
+
+  isGenerating = true;
+  document.getElementById('genBtn').disabled = true;
+  
+  const terminal = document.getElementById('genTerminal');
+  const probChart = document.getElementById('probChart');
+  const probBars = document.getElementById('probBars');
+  const finalOutput = document.getElementById('finalOutput');
+  const finalTokens = document.getElementById('finalTokens');
+
+  terminal.style.display = 'block';
+  probChart.style.display = 'block';
+  finalOutput.style.display = 'none';
+  terminal.innerHTML = '';
+  finalTokens.innerHTML = '';
+
+  const blockSize = 6;
+  const maxNewTokens = 12;
+  let context = [input];
+
+  // Add initial token to final output
+  finalTokens.innerHTML += `<div class="token">${input}</div>`;
+
+  const addLog = (html) => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+  };
+
+  addLog(`<span class="step-title">▶ Initializing generation...</span>`);
+  addLog(`Context: <span class="ctx">[${context.join(', ')}]</span>`);
+  await sleep(500);
+
+  for (let step = 0; step < maxNewTokens; step++) {
+    addLog(`<br><span class="step-title">Step ${step + 1}:</span>`);
+    
+    // Crop context (simulating idx[:, -block_size:])
+    const ctxCond = context.slice(-blockSize);
+    addLog(`Cropped context (block_size=6): <span class="ctx">[${ctxCond.join(', ')}]</span>`);
+    
+    // Get probabilities for the last token
+    const lastToken = ctxCond[ctxCond.length - 1];
+    const probs = getProbs(lastToken);
+    
+    // Sort and get top 5
+    const sortedProbs = Object.entries(probs).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    
+    // Update probability chart
+    probBars.innerHTML = sortedProbs.map(([w, p]) => `
+      <div class="prob-row">
+        <div class="word">${w}</div>
+        <div class="bar-wrap"><div class="bar-fill" style="width: 0%"></div></div>
+        <div class="pct">${(p * 100).toFixed(1)}%</div>
+      </div>
+    `).join('');
+    
+    await sleep(300);
+    
+    // Animate bars
+    const bars = probBars.querySelectorAll('.bar-fill');
+    sortedProbs.forEach(([, p], i) => {
+      bars[i].style.width = `${p * 100}%`;
+    });
+    
+    await sleep(400);
+    
+    addLog(`Softmax → Top 5 probs calculated.`);
+    
+    // Sample next word
+    const nextWord = sampleWord(probs);
+    addLog(`Sampled: <span class="sample">${nextWord}</span>`);
+    
+    // Append to context
+    context.push(nextWord);
+    
+    // Add to final output
+    const tokenEl = document.createElement('div');
+    tokenEl.className = 'token new';
+    tokenEl.textContent = nextWord;
+    finalTokens.appendChild(tokenEl);
+    
+    await sleep(300);
+    
+    if (nextWord === '<END>') {
+      addLog(`<span class="sample">Reached &lt;END&gt; token. Stopping.</span>`);
+      break;
+    }
+  }
+
+  finalOutput.style.display = 'block';
+  addLog(`<br><span class="step-title">✓ Generation complete.</span>`);
+  
+  isGenerating = false;
+  document.getElementById('genBtn').disabled = false;
+}
+
+function clearGeneration() {
+  if (isGenerating) return;
+  document.getElementById('genInput').value = '';
+  document.getElementById('genTerminal').style.display = 'none';
+  document.getElementById('probChart').style.display = 'none';
+  document.getElementById('finalOutput').style.display = 'none';
+  document.getElementById('genTerminal').innerHTML = '';
+  document.getElementById('finalTokens').innerHTML = '';
+}
+
+/* ---------------- NAV HIGHLIGHT ---------------- */
+const navLinks = document.querySelectorAll('.nav a');
+const sections = [...document.querySelectorAll('section.block')];
+window.addEventListener('scroll', () => {
+  const y = window.scrollY + 120;
+  let active = sections[0].id;
+  sections.forEach(s => { if (s.offsetTop <= y) active = s.id; });
+  navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + active));
+});
+
+
+
+/* ---------------- INIT ---------------- */
+buildVocab();
+sampleBatch();
+setMaskSize(6);
+drawLoss();
+</script>
 </body>
 </html>
