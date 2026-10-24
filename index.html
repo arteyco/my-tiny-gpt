@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TinyGPT — Interactive Anatomy & Playground</title>
+<style>
+  :root {
+    --bg-0: #07080c;
+    --bg-1: #0d1018;
+    --bg-2: #141826;
+    --bg-3: #1b2033;
+    --border: #262c42;
+    --text: #e6e9f2;
+    --text-dim: #9aa3bd;
+    --text-mute: #6b7392;
+    --accent: #7c9cff;
+    --accent-2: #b47cff;
+    --accent-3: #4fd1c5;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --code-bg: #0a0d16;
+    --shadow: 0 10px 30px rgba(0,0,0,.4);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(124,156,255,.12), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(180,124,255,.10), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  code, pre { font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace; }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+  aside {
+    position: sticky; top: 0; height: 100vh;
+    background: linear-gradient(180deg, #0a0d16, #07080c);
+    border-right: 1px solid var(--border);
+    padding: 22px 16px;
+    overflow-y: auto;
+  }
+  aside .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 18px; margin-bottom: 18px;
+  }
+  .brand .logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent));
+    box-shadow: 0 0 20px rgba(124,156,255,.4);
+  }
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+    color: var(--text-mute); margin: 14px 8px 6px;
+  }
+  .nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 8px;
+    color: var(--text-dim); font-size: 14px;
+    transition: all .15s ease;
+  }
+  .nav a:hover { background: var(--bg-2); color: var(--text); }
+  .nav a.active { background: linear-gradient(90deg, rgba(124,156,255,.18), transparent); color: var(--text); }
+  .nav a .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-mute); }
+  .nav a.active .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  main { padding: 40px 48px 80px; max-width: 1200px; }
+  header.hero {
+    padding: 36px 32px; border-radius: 20px;
+    background:
+      radial-gradient(600px 200px at 0% 0%, rgba(124,156,255,.15), transparent 60%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+    position: relative; overflow: hidden;
+  }
+  header.hero h1 { font-size: 34px; margin: 0 0 8px; letter-spacing: -.02em; }
+  header.hero p { color: var(--text-dim); max-width: 720px; margin: 0; }
+  header.hero .tag {
+    display: inline-block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); padding: 4px 10px; border: 1px solid rgba(124,156,255,.35);
+    border-radius: 999px; margin-bottom: 14px;
+  }
+
+  section.block {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 24px;
+    scroll-margin-top: 20px;
+  }
+  section.block h2 {
+    font-size: 22px; margin: 0 0 4px; letter-spacing: -.01em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  section.block h2 .badge {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    padding: 3px 8px; border-radius: 6px;
+    background: rgba(124,156,255,.15); color: var(--accent);
+  }
+  section.block .subtitle { color: var(--text-dim); margin: 0 0 18px; }
+  section.block h3 { font-size: 16px; margin: 22px 0 8px; color: var(--text); }
+  section.block p { color: var(--text-dim); }
+
+  /* Code blocks */
+  .code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.55;
+  }
+  .code .k { color: #c586ff; }
+  .code .f { color: #7cc5ff; }
+  .code .s { color: #a5d6a7; }
+  .code .c { color: #6b7392; font-style: italic; }
+  .code .n { color: #f0c674; }
+  .code .o { color: #ff9d9d; }
+
+  /* Grid helpers */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .card h4 { margin: 0 0 6px; font-size: 14px; color: var(--text); }
+  .card p { margin: 0; font-size: 13px; color: var(--text-dim); }
+
+  /* Token chips */
+  .tokens { display: flex; flex-wrap: wrap; gap: 6px; }
+  .token {
+    padding: 6px 10px; border-radius: 8px;
+    background: var(--bg-3); border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .token .idx { color: var(--text-mute); font-size: 10px; }
+  .token.hi { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .token.new { border-color: var(--good); box-shadow: 0 0 0 1px var(--good) inset; animation: pop .3s ease; }
+  @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  /* Attention matrix */
+  .matrix-wrap { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .matrix {
+    display: grid; gap: 3px;
+    background: var(--bg-2); padding: 10px; border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .cell {
+    width: 28px; height: 28px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: rgba(255,255,255,.6);
+    transition: all .2s ease;
+  }
+  .cell.allowed { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+  .cell.masked { background: #1a1d2c; color: var(--text-mute); }
+
+  /* Pipeline diagram */
+  .pipeline {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 16px; background: var(--bg-2); border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .pipe-node {
+    padding: 10px 14px; border-radius: 10px;
+    background: linear-gradient(180deg, #1a2036, #141826);
+    border: 1px solid var(--border);
+    font-size: 13px; font-weight: 500;
+  }
+  .pipe-node.active { border-color: var(--accent); box-shadow: 0 0 18px rgba(124,156,255,.25); }
+  .pipe-arrow { color: var(--text-mute); font-size: 18px; }
+
+  /* Buttons */
+  .btn {
+    background: linear-gradient(180deg, #2a3356, #1a2036);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 14px; border-radius: 10px;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all .15s ease;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: linear-gradient(180deg, var(--accent), #5a7ae0);
+    border-color: transparent; color: #fff;
+  }
+  .btn.primary:hover { filter: brightness(1.1); color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Interactive panels */
+  .interactive {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 12px;
+  }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+
+  /* Batch table */
+  table.batch {
+    width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  table.batch th, table.batch td {
+    padding: 8px 10px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  table.batch th { color: var(--text-mute); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: .1em; }
+  table.batch td.word { color: var(--accent-3); }
+
+  /* Embedding bars */
+  .emb-bar {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    margin: 4px 0;
+  }
+  .emb-bar .label { width: 70px; color: var(--text-dim); }
+  .emb-bar .bar {
+    height: 14px; border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width .4s ease;
+  }
+  .emb-bar .val { color: var(--text-mute); font-size: 11px; width: 40px; }
+
+  /* Flow arrows */
+  .flow {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px; background: var(--bg-2);
+    border: 1px solid var(--border); border-radius: 12px;
+    flex-wrap: wrap;
+  }
+  .flow .step {
+    padding: 8px 12px; border-radius: 8px;
+    background: var(--bg-3); border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .flow .arrow { color: var(--accent); }
+
+  /* Loss curve */
+  .loss-chart {
+    width: 100%; height: 140px;
+    background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 10px; position: relative; overflow: hidden;
+  }
+  .loss-chart svg { width: 100%; height: 100%; }
+
+  /* Generation Playground Specifics */
+  .gen-input-wrap {
+    display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .gen-input {
+    flex: 1; min-width: 200px;
+    background: var(--bg-3); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 14px; border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    outline: none; transition: border-color .2s;
+  }
+  .gen-input:focus { border-color: var(--accent); }
+  
+  .gen-terminal {
+    background: #05070d; border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    line-height: 1.6; color: var(--text-dim); max-height: 300px; overflow-y: auto;
+    margin-bottom: 16px;
+  }
+  .gen-terminal .step-title { color: var(--accent); font-weight: 600; }
+  .gen-terminal .ctx { color: var(--accent-3); }
+  .gen-terminal .prob { color: var(--warn); }
+  .gen-terminal .sample { color: var(--good); }
+
+  .prob-chart {
+    display: flex; flex-direction: column; gap: 6px; margin: 12px 0;
+  }
+  .prob-row {
+    display: flex; align-items: center; gap: 10px; font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .prob-row .word { width: 80px; text-align: right; color: var(--text-dim); }
+  .prob-row .bar-wrap { flex: 1; height: 16px; background: var(--bg-3); border-radius: 4px; overflow: hidden; }
+  .prob-row .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .5s ease; }
+  .prob-row .pct { width: 50px; color: var(--text-mute); }
+
+  .final-output {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.05), rgba(124, 156, 255, 0.05));
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    border-radius: 12px; padding: 16px; margin-top: 16px;
+  }
+  .final-output h4 { margin: 0 0 10px; color: var(--good); font-size: 14px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg-0); }
+  ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a3356; }
+
+ 
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    aside { position: relative; height: auto; }
+    main { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <div class="logo"></div>
+      <div>TinyGPT<br><span style="font-size:11px;color:var(--text-mute);font-weight:400">Interactive Anatomy</span></div>
+    </div>
+    <nav class="nav">
+      <div class="section-title">Overview</div>
+      <a href="#overview" class="active"><span class="dot"></span>Introduction</a>
+      <a href="#corpus"><span class="dot"></span>Corpus & Vocabulary</a>
+      <a href="#data"><span class="dot"></span>Data & Batching</a>
+
+      <div class="section-title">Architecture</div>
+      <a href="#tinygpt"><span class="dot"></span>TinyGPT</a>
+      <a href="#selfattn"><span class="dot"></span>SelfAttentionHead</a>
+      <a href="#multihead"><span class="dot"></span>MultiHeadAttention</a>
+      <a href="#ffn"><span class="dot"></span>FeedForward</a>
+      <a href="#block"><span class="dot"></span>Transformer Block</a>
+
+      <div class="section-title">Operations</div>
+      <a href="#forward"><span class="dot"></span>forward()</a>
+      <a href="#generate"><span class="dot"></span>generate()</a>
+      <a href="#training"><span class="dot"></span>Training Loop</a>
+
+      <div class="section-title">Playground</div>
+      <a href="#playground"><span class="dot"></span>Interactive Generation</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="hero">
+      <span class="tag">PyTorch · Transformer · Educational</span>
+      <h1>TinyGPT — dissected, piece by piece</h1>
+      <p>A fully interactive walkthrough of a minimal GPT-style language model. Every class, every method, every tensor — explained with diagrams, live demos, and the original code side-by-side. Try the interactive generator at the bottom!</p>
+    </header>
+
+    <!-- OVERVIEW -->
+    <section class="block" id="overview">
+      <h2>Introduction <span class="badge">Overview</span></h2>
+      <p class="subtitle">What this demo actually builds</p>
+      <p>This app is a tiny decoder-only Transformer trained from scratch on a 10-sentence English corpus. It learns to predict the next token given a context window of 6 tokens. Despite its size (~few thousand parameters), it demonstrates every core idea behind modern LLMs: token embeddings, positional embeddings, causal self-attention, multi-head attention, feed-forward blocks, layer normalization, and autoregressive generation.</p>
+
+      <div class="grid-3" style="margin-top:18px">
+        <div class="card"><h4>📦 Corpus</h4><p>10 short sentences, ~42 unique words, &lt;END&gt; token appended.</p></div>
+        <div class="card"><h4>🧱 Block size</h4><p>6 tokens of context. The model only ever "sees" this window.</p></div>
+        <div class="card"><h4>🧠 Embedding</h4><p>32-dim vectors for tokens and positions — summed before attention.</p></div>
+        <div class="card"><h4>👁️ Attention</h4><p>2 heads, 2 layers, causal mask so each token only attends to past.</p></div>
+        <div class="card"><h4>⚡ Training</h4><p>AdamW, cross-entropy loss, 1500 steps on random batches.</p></div>
+        <div class="card"><h4>✨ Generation</h4><p>Autoregressive sampling with softmax + multinomial.</p></div>
+      </div>
+
+      <h3>High-level pipeline</h3>
+      <div class="pipeline">
+        <div class="pipe-node">Text</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node">Tokens</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node active">Embed + Pos</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node">×N Blocks</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node">LayerNorm</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node active">Linear Head</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node">Logits</div>
+      </div>
+    </section>
+
+    <!-- CORPUS -->
+    <section class="block" id="corpus">
+      <h2>Corpus & Vocabulary <span class="badge">Data Prep</span></h2>
+      <p class="subtitle">Turning sentences into a numbered dictionary</p>
+
+      <h3>1. The raw corpus</h3>
+      <p>Ten short English sentences, each terminated with a special <code>&lt;END&gt;</code> token so the model knows when a sentence finishes.</p>
+      <div class="code"><span class="c"># 10 sentences, each appended with &lt;END&gt;</span>
+corpus = [
+  <span class="s">"hello friends how are you "</span>,
+  <span class="s">"the coffee is very hot "</span>,
+  ...
+]
+corpus = [s + <span class="s">" &lt;END&gt;"</span> <span class="k">for</span> s <span class="k">in</span> corpus]</div>
+
+      <h3>2. Build the vocabulary</h3>
+      <p>We split on whitespace, take the <em>set</em> of unique words, and assign each an integer ID. This gives us <code>word2idx</code> (word → int) and <code>idx2word</code> (int → word).</p>
+      <div class="code">words = <span class="f">list</span>(<span class="f">set</span>(text.split()))
+vocab_size = <span class="f">len</span>(words)
+word2idx = {w: i <span class="k">for</span> i, w <span class="k">in</span> <span class="f">enumerate</span>(words)}
+idx2word = {i: w <span class="k">for</span> w, i <span class="k">in</span> word2idx.items()}</div>
+
+      <div class="interactive">
+        <div class="controls">
+          <button class="btn primary" onclick="buildVocab()">Rebuild vocabulary</button>
+          <button class="btn" onclick="shuffleVocab()">Shuffle IDs</button>
+        </div>
+        <p style="margin:0 0 10px;color:var(--text-dim);font-size:13px">Live vocabulary — click any token to highlight its ID mapping:</p>
+        <div id="vocabDisplay" class="tokens"></div>
+        <div id="vocabStats" style="margin-top:12px;font-size:13px;color:var(--text-dim)"></div>
+      </div>
+    </section>
+
+    <!-- DATA -->
+    <section class="block" id="data">
+      <h2>Data & Batching <span class="badge">Tensors</span></h2>
+      <p class="subtitle">From words to a 1-D tensor, then to (x, y) pairs</p>
+
+      <h3>1. Encode the whole corpus</h3>
+      <p>The entire text is flattened into one long 1-D tensor of integer IDs. This is our training "tape".</p>
+      <div class="code">data = torch.tensor([word2idx[w] <span class="k">for</span> w <span class="k">in</span> text.split()], dtype=torch.long)</div>
+
+      <h3>2. <code>get_batch()</code> — sliding windows</h3>
+      <p>We sample <code>batch_size</code> random starting positions. For each, <code>x</code> is 6 tokens and <code>y</code> is the same window shifted by 1 — the "next token" targets.</p>
+      <div class="code"><span class="k">def</span> <span class="f">get_batch</span>(batch_size=<span class="n">16</span>):
+    ix = torch.randint(<span class="f">len</span>(data) - block_size, (batch_size,))
+    x = torch.stack([data[i:i+block_size] <span class="k">for</span> i <span class="k">in</span> ix])
+    y = torch.stack([data[i+<span class="n">1</span>:i+block_size+<span class="n">1</span>] <span class="k">for</span> i <span class="k">in</span> ix])
+    <span class="k">return</span> x, y</div>
+
+      <div class="interactive">
+        <div class="controls">
+          <button class="btn primary" onclick="sampleBatch()">Sample a new batch</button>
+        </div>
+        <p style="margin:0 0 10px;color:var(--text-dim);font-size:13px">Each row = one training example. <b style="color:var(--accent-3)">x</b> is the context, <b style="color:var(--warn)">y</b> is what the model must predict.</p>
+        <div id="batchTable"></div>
+      </div>
+    </section>
+
+    <!-- TINY GPT -->
+    <section class="block" id="tinygpt">
+      <h2>TinyGPT <span class="badge">nn.Module</span></h2>
+      <p class="subtitle">The top-level model: embeddings → blocks → head</p>
+
+      <h3>Constructor — what it builds</h3>
+      <div class="code"><span class="k">class</span> <span class="f">TinyGPT</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self):
+        super().__init__()
+        self.token_embedding     = nn.Embedding(vocab_size, embedding_dim)
+        self.position_embedding  = nn.Embedding(block_size, embedding_dim)
+        self.blocks = nn.Sequential(*[Block(embedding_dim, block_size, n_heads)
+                                      <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(n_layers)])
+        self.ln_f = nn.LayerNorm(embedding_dim)
+        self.head = nn.Linear(embedding_dim, vocab_size)</div>
+
+      <div class="grid-2" style="margin-top:14px">
+        <div class="card">
+          <h4>🔤 token_embedding</h4>
+          <p>A lookup table of shape <code>[vocab_size × 32]</code>. Each word ID maps to a 32-dim learned vector.</p>
+        </div>
+        <div class="card">
+          <h4>📍 position_embedding</h4>
+          <p>A lookup table of shape <code>[block_size × 32]</code>. Tells the model "you are token 0, 1, 2…" — because attention itself is permutation-invariant.</p>
+        </div>
+        <div class="card">
+          <h4>🧱 blocks</h4>
+          <p>A stack of 2 Transformer blocks (attention + FFN + residuals + LayerNorm).</p>
+        </div>
+        <div class="card">
+          <h4>🎯 head</h4>
+          <p>A final linear layer that projects each 32-dim hidden state back to <code>vocab_size</code> logits — one score per word.</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top:18px">Hyperparameters</h3>
+      <div class="grid-3">
+        <div class="card"><h4>block_size</h4><p><code>6</code> — context window</p></div>
+        <div class="card"><h4>embedding_dim</h4><p><code>32</code> — hidden width</p></div>
+        <div class="card"><h4>n_heads</h4><p><code>2</code> — attention heads</p></div>
+        <div class="card"><h4>n_layers</h4><p><code>2</code> — transformer blocks</p></div>
+        <div class="card"><h4>lr</h4><p><code>1e-3</code> — AdamW learning rate</p></div>
+        <div class="card"><h4>epochs</h4><p><code>1500</code> — training steps</p></div>
+      </div>
+    </section>
+
+    <!-- SELF ATTENTION -->
+    <section class="block" id="selfattn">
+      <h2>SelfAttentionHead <span class="badge">Core</span></h2>
+      <p class="subtitle">The fundamental "token talks to token" operation</p>
+
+      <h3>What it holds</h3>
+      <div class="code"><span class="k">class</span> <span class="f">SelfAttentionHead</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self, embedding_dim, block_size, head_size):
+        self.key   = nn.Linear(embedding_dim, head_size, bias=<span class="k">False</span>)
+        self.query = nn.Linear(embedding_dim, head_size, bias=<span class="k">False</span>)
+        self.value = nn.Linear(embedding_dim, head_size, bias=<span class="k">False</span>)
+        self.register_buffer(<span class="s">'tril'</span>, torch.tril(torch.ones(block_size, block_size)))</div>
+
+      <div class="grid-3" style="margin-top:14px">
+        <div class="card"><h4>🔑 Key (K)</h4><p>"What do I contain?" — each token advertises itself.</p></div>
+        <div class="card"><h4>❓ Query (Q)</h4><p>"What am I looking for?" — each token searches.</p></div>
+        <div class="card"><h4>💎 Value (V)</h4><p>"What info do I actually pass on if attended to?"</p></div>
+      </div>
+
+      <h3>The forward pass — scaled dot-product attention</h3>
+      <div class="code"><span class="k">def</span> <span class="f">forward</span>(self, x):
+    k = self.key(x)
+    q = self.query(x)
+    wei = q @ k.transpose(-<span class="n">2</span>, -<span class="n">1</span>) / (C ** <span class="n">0.5</span>)          <span class="c"># QKᵀ / √d</span>
+    wei = wei.masked_fill(self.tril[:T, :T] == <span class="n">0</span>, <span class="f">float</span>(<span class="s">'-inf'</span>))  <span class="c"># causal mask</span>
+    wei = F.softmax(wei, dim=-<span class="n">1</span>)                           <span class="c"># attention weights</span>
+    v = self.value(x)
+    <span class="k">return</span> wei @ v                                       <span class="c"># weighted sum of values</span></div>
+
+      <h3>Interactive: the causal mask</h3>
+      <p style="color:var(--text-dim);font-size:13px">The lower-triangular mask ensures token <i>i</i> can only attend to tokens ≤ <i>i</i>. This is what makes the model a <b>decoder</b> — it can't peek at the future.</p>
+      <div class="interactive">
+        <div class="controls">
+          <button class="btn" onclick="setMaskSize(4)">T = 4</button>
+          <button class="btn primary" onclick="setMaskSize(6)">T = 6</button>
+          <button class="btn" onclick="setMaskSize(8)">T = 8</button>
+        </div>
+        <div class="matrix-wrap">
+          <div>
+            <div style="font-size:12px;color:var(--text-mute);margin-bottom:6px">Causal mask (tril)</div>
+            <div id="maskMatrix" class="matrix"></div>
+          </div>
+          <div style="flex:1;min-width:220px">
+            <div style="font-size:13px;color:var(--text-dim)">
+              <p style="margin:0 0 8px"><span style="display:inline-block;width:14px;height:14px;background:linear-gradient(135deg,var(--accent),var(--accent-2));border-radius:3px;vertical-align:middle;margin-right:6px"></span><b>Allowed</b> — token can attend</p>
+              <p style="margin:0 0 8px"><span style="display:inline-block;width:14px;height:14px;background:#1a1d2c;border:1px solid var(--border);border-radius:3px;vertical-align:middle;margin-right:6px"></span><b>Masked (−∞)</b> — future, blocked</p>
+              <p style="margin:0">After softmax, masked cells become exactly 0. The remaining cells in each row sum to 1.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MULTIHEAD -->
+    <section class="block" id="multihead">
+      <h2>MultiHeadAttention <span class="badge">Ensemble</span></h2>
+      <p class="subtitle">Several attention heads running in parallel, then concatenated</p>
+
+      <div class="code"><span class="k">class</span> <span class="f">MultiHeadAttention</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self, embedding_dim, block_size, num_heads):
+        head_size = embedding_dim // num_heads
+        self.heads = nn.ModuleList([SelfAttentionHead(embedding_dim, block_size, head_size)
+                                    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(num_heads)])
+        self.proj = nn.Linear(num_heads * head_size, embedding_dim)
+
+    <span class="k">def</span> <span class="f">forward</span>(self, x):
+        out = torch.cat([h(x) <span class="k">for</span> h <span class="k">in</span> self.heads], dim=-<span class="n">1</span>)
+        <span class="k">return</span> self.proj(out)</div>
+
+      <h3>Why multiple heads?</h3>
+      <p>Each head can specialize — one might track subject-verb agreement, another might track nearby adjectives. With <code>embedding_dim=32</code> and <code>num_heads=2</code>, each head has <code>head_size=16</code>. Their outputs are concatenated back to 32 dims and projected through a linear layer so the next block sees a clean 32-dim signal.</p>
+
+      <div class="flow">
+        <div class="step">x (32)</div>
+        <div class="arrow">→</div>
+        <div class="step">Head 1 (16)</div>
+        <div class="arrow">↘</div>
+        <div class="step">concat (32)</div>
+        <div class="arrow">→</div>
+        <div class="step">proj (32)</div>
+        <div class="arrow">↗</div>
+        <div class="step">Head 2 (16)</div>
+      </div>
+    </section>
+
+    <!-- FFN -->
+    <section class="block" id="ffn">
+      <h2>FeedForward <span class="badge">Per-token MLP</span></h2>
+      <p class="subtitle">A tiny MLP applied independently to every token</p>
+
+      <div class="code"><span class="k">class</span> <span class="f">FeedForward</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self, n_embd):
+        self.net = nn.Sequential(
+            nn.Linear(n_embd, <span class="n">4</span> * n_embd),
+            nn.ReLU(),
+            nn.Linear(<span class="n">4</span> * n_embd, n_embd)
+        )
+    <span class="k">def</span> <span class="f">forward</span>(self, x):
+        <span class="k">return</span> self.net(x)</div>
+
+      <p>Think of attention as "gathering information from other tokens" and the FFN as "thinking about what I gathered". The 4× expansion (32 → 128 → 32) is a standard trick that gives the model extra capacity per token without increasing sequence-level cost much.</p>
+
+      <div class="interactive">
+        <p style="margin:0 0 8px;font-size:13px;color:var(--text-dim)">With <code>n_embd=32</code>:</p>
+        <div class="emb-bar"><span class="label">Input</span><div class="bar" style="width:25%"></div><span class="val">32</span></div>
+        <div class="emb-bar"><span class="label">Hidden</span><div class="bar" style="width:100%"></div><span class="val">128</span></div>
+        <div class="emb-bar"><span class="label">Output</span><div class="bar" style="width:25%"></div><span class="val">32</span></div>
+      </div>
+    </section>
+
+    <!-- BLOCK -->
+    <section class="block" id="block">
+      <h2>Transformer Block <span class="badge">Composition</span></h2>
+      <p class="subtitle">Attention + FFN, each wrapped with residual + LayerNorm (Pre-LN)</p>
+
+      <div class="code"><span class="k">class</span> <span class="f">Block</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self, embedding_dim, block_size, n_heads):
+        self.sa   = MultiHeadAttention(embedding_dim, block_size, n_heads)
+        self.ffwd = FeedForward(embedding_dim)
+        self.ln1  = nn.LayerNorm(embedding_dim)
+        self.ln2  = nn.LayerNorm(embedding_dim)
+
+    <span class="k">def</span> <span class="f">forward</span>(self, x):
+        x = x + self.sa(self.ln1(x))      <span class="c"># residual around attention</span>
+        x = x + self.ffwd(self.ln2(x))    <span class="c"># residual around FFN</span>
+        <span class="k">return</span> x</div>
+
+      <h3>Why residuals?</h3>
+      <p>Each sub-layer gets a "skip connection": <code>x + sublayer(x)</code>. This lets gradients flow directly through the network and lets the model learn small refinements on top of the identity — critical for training deep stacks.</p>
+
+      <h3>Why Pre-LN (LayerNorm <i>before</i> the sublayer)?</h3>
+      <p>Modern GPTs normalize inputs to each sublayer rather than outputs. It stabilizes training and is the dominant convention since GPT-2.</p>
+
+      <div class="flow">
+        <div class="step">x</div>
+        <div class="arrow">→</div>
+        <div class="step">LN₁</div>
+        <div class="arrow">→</div>
+        <div class="step">MultiHeadAttn</div>
+        <div class="arrow">→</div>
+        <div class="step">+ x (residual)</div>
+        <div class="arrow">→</div>
+        <div class="step">LN₂</div>
+        <div class="arrow">→</div>
+        <div class="step">FFN</div>
+        <div class="arrow">→</div>
+        <div class="step">+ x (residual)</div>
+      </div>
+    </section>
+
+    <!-- FORWARD -->
+    <section class="block" id="forward">
+      <h2>forward() <span class="badge">Inference</span></h2>
+      <p class="subtitle">One complete pass from token IDs to logits + loss</p>
+
+      <div class="code"><span class="k">def</span> <span class="f">forward</span>(self, idx, targets=<span class="k">None</span>):
+    B, T = idx.shape
+    tok_emb = self.token_embedding(idx)
+    pos_emb = self.position_embedding(torch.arange(T, device=idx.device))
+    x = tok_emb + pos_emb
+    x = self.blocks(x)
+    x = self.ln_f(x)
+    logits = self.head(x)
+    loss = <span class="k">None</span>
+    <span class="k">if</span> targets <span class="k">is</span> <span class="k">not</span> <span class="k">None</span>:
+        B, T, C = logits.shape
+        loss = F.cross_entropy(logits.view(B*T, C), targets.view(B*T))
+    <span class="k">return</span> logits, loss</div>
+
+      <h3>Step by step</h3>
+      <div class="grid-2">
+        <div class="card"><h4>1. Embed tokens</h4><p>Look up each of the B×T token IDs → shape <code>[B, T, 32]</code>.</p></div>
+        <div class="card"><h4>2. Add position</h4><p>Broadcast the <code>[T, 32]</code> positional embedding across the batch.</p></div>
+        <div class="card"><h4>3. Run blocks</h4><p>Sequentially through 2 transformer blocks.</p></div>
+        <div class="card"><h4>4. Final LayerNorm</h4><p>Stabilize the hidden states before the head.</p></div>
+        <div class="card"><h4>5. Linear head</h4><p>Project 32 → vocab_size. Output shape <code>[B, T, vocab_size]</code>.</p></div>
+        <div class="card"><h4>6. Cross-entropy loss</h4><p>Flatten to <code>[B*T, vocab_size]</code> vs <code>[B*T]</code> targets.</p></div>
+      </div>
+    </section>
+
+    <!-- GENERATE -->
+    <section class="block" id="generate">
+      <h2>generate() <span class="badge">Autoregressive</span></h2>
+      <p class="subtitle">Sampling one token at a time, feeding it back in</p>
+
+      <div class="code"><span class="k">def</span> <span class="f">generate</span>(self, idx, max_new_tokens):
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(max_new_tokens):
+        idx_cond = idx[:, -block_size:]          <span class="c"># crop to context window</span>
+        logits, _ = self(idx_cond)
+        logits = logits[:, -<span class="n">1</span>, :]                <span class="c"># only the last position</span>
+        probs = F.softmax(logits, dim=-<span class="n">1</span>)
+        next_idx = torch.multinomial(probs, <span class="n">1</span>)  <span class="c"># sample</span>
+        idx = torch.cat((idx, next_idx), dim=<span class="n">1</span>)  <span class="c"># append</span>
+    <span class="k">return</span> idx</div>
+
+      <p>Starting from a seed word, the model predicts the next word, appends it, re-runs on the last 6 tokens, predicts again, and so on. Because we sample (not argmax), outputs vary between runs.</p>
+    </section>
+
+    <!-- TRAINING -->
+    <section class="block" id="training">
+      <h2>Training Loop <span class="badge">Optimization</span></h2>
+      <p class="subtitle">AdamW, cross-entropy, 1500 steps</p>
+
+      <div class="code">optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+<span class="k">for</span> step <span class="k">in</span> <span class="f">range</span>(epochs):
+    xb, yb = get_batch()
+    logits, loss = model(xb, yb)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    <span class="k">if</span> step % <span class="n">300</span> == <span class="n">0</span>:
+        <span class="f">print</span>(<span class="s">f"Step {step}, loss={loss.item():.4f}"</span>)</div>
+
+      <h3>Simulated loss curve</h3>
+      <div class="loss-chart">
+        <svg id="lossSvg" viewBox="0 0 600 140" preserveAspectRatio="none"></svg>
+      </div>
+      <p style="font-size:12px;color:var(--text-mute);margin-top:8px">Typical shape: starts high (≈ vocab-level random), drops quickly, then slowly refines.</p>
+    </section>
+
+    <!-- PLAYGROUND -->
+    <section class="block" id="playground">
+      <h2>Interactive Generation <span class="badge">Live Simulation</span></h2>
+      <p class="subtitle">Enter any of the 42 vocabulary words and watch the LLM simulate autoregressive generation step-by-step, complete with probability distributions.</p>
+
+      <div class="interactive">
+        <div class="gen-input-wrap">
+          <input type="text" id="genInput" class="gen-input" list="vocabList" placeholder="Type a word (e.g., hello, coffee, colombia...)" />
+          <datalist id="vocabList"></datalist>
+          <button class="btn primary" id="genBtn" onclick="startGeneration()">▶ Generate</button>
+          <button class="btn" onclick="clearGeneration()">Clear</button>
+        </div>
+
+        <div id="probChart" class="prob-chart" style="display:none">
+          <div style="font-size:12px;color:var(--text-mute);margin-bottom:6px">Top 5 Predicted Next Tokens (Softmax Probabilities):</div>
+          <div id="probBars"></div>
+        </div>
+
+        <div id="genTerminal" class="gen-terminal" style="display:none"></div>
+
+        <div id="finalOutput" class="final-output" style="display:none">
+          <h4>✨ Final Generated Sequence</h4>
+          <div id="finalTokens" class="tokens"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer style="text-align:center;color:var(--text-mute);font-size:12px;margin-top:40px;padding:20px">
+      Built as an interactive companion for the TinyGPT demo · All code references map 1:1 to <code>demo.py</code> and <code>transformer_blocks.py</code>
+    </footer>
+  </main>
+</div>
+
+
+
+<script>
+/* ---------------- CORPUS & VOCABULARY ---------------- */
+const rawCorpus = [
+ "hello friends how are you ",
+ "the coffee is very hot ",
+ "my name is castani ",
+ "the roads of Bogota are busy ",
+ "it is raining in Usaquen ",
+ "the train is late again ",
+ "i love eating cakes and drinking coffee ",
+ "jazz is my favorite festival ",
+ "christmas brings lights and sweets ",
+ "santafe won the succer match "
+];
+const fullCorpus = rawCorpus.map(s => s + " <END>");
+const allTokens = fullCorpus.join(" ").split(/\s+/).filter(Boolean);
+const vocab = [...new Set(allTokens)].sort();
+const word2idx = {};
+vocab.forEach((w, i) => word2idx[w] = i);
+const idx2word = {};
+vocab.forEach((w, i) => idx2word[i] = w);
+
+// Populate datalist
+const datalist = document.getElementById('vocabList');
+datalist.innerHTML = vocab.map(w => `<option value="${w}">`).join('');
+
+/* ---------------- BIGRAM MODEL (Simulating the trained LLM) ---------------- */
+const bigrams = {};
+for (let i = 0; i < allTokens.length - 1; i++) {
+  const w1 = allTokens[i];
+  const w2 = allTokens[i + 1];
+  if (!bigrams[w1]) bigrams[w1] = {};
+  bigrams[w1][w2] = (bigrams[w1][w2] || 0) + 1;
+}
+// Normalize to probabilities
+for (const w1 in bigrams) {
+  const total = Object.values(bigrams[w1]).reduce((a, b) => a + b, 0);
+  for (const w2 in bigrams[w1]) {
+    bigrams[w1][w2] /= total;
+  }
+}
+
+function getProbs(word) {
+  if (bigrams[word]) return bigrams[word];
+  // Fallback: uniform if word was never seen as a predecessor
+  const uniform = {};
+  const p = 1.0 / vocab.length;
+  vocab.forEach(w => uniform[w] = p);
+  return uniform;
+}
+
+function sampleWord(probs) {
+  const r = Math.random();
+  let cum = 0;
+  for (const [w, p] of Object.entries(probs)) {
+    cum += p;
+    if (r <= cum) return w;
+  }
+  return Object.keys(probs)[0];
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------------- VOCABULARY DEMO UI ---------------- */
+function buildVocab() {
+  renderVocab();
+}
+function shuffleVocab() {
+  // Just visually shuffle the display order, keeping IDs consistent
+  const shuffled = [...vocab].sort(() => Math.random() - 0.5);
+  const el = document.getElementById('vocabDisplay');
+  el.innerHTML = shuffled.map(w =>
+    `<div class="token" onclick="this.classList.toggle('hi')">${w}<span class="idx">#${word2idx[w]}</span></div>`
+  ).join('');
+}
+function renderVocab() {
+  const el = document.getElementById('vocabDisplay');
+  el.innerHTML = vocab.map(w =>
+    `<div class="token" onclick="this.classList.toggle('hi')">${w}<span class="idx">#${word2idx[w]}</span></div>`
+  ).join('');
+  document.getElementById('vocabStats').innerHTML =
+    `<b>Vocab size:</b> ${vocab.length} · <b>Total tokens in corpus:</b> ${allTokens.length}`;
+}
+
+/* ---------------- BATCH DEMO ---------------- */
+function sampleBatch() {
+  const blockSize = 6;
+  const rows = [];
+  for (let i = 0; i < 5; i++) {
+    const start = Math.floor(Math.random() * (allTokens.length - blockSize));
+    const x = allTokens.slice(start, start + blockSize);
+    const y = allTokens.slice(start + 1, start + blockSize + 1);
+    rows.push({ x, y });
+  }
+  const html = `<table class="batch">
+    <thead><tr><th>Row</th><th>x (context)</th><th>y (target)</th></tr></thead>
+    <tbody>${rows.map((r, i) => `
+      <tr>
+        <td style="color:var(--text-mute)">${i}</td>
+        <td class="word">${r.x.map(w => `<span style="color:var(--accent-3)">${w}</span>`).join(' ')}</td>
+        <td class="word">${r.y.map(w => `<span style="color:var(--warn)">${w}</span>`).join(' ')}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  document.getElementById('batchTable').innerHTML = html;
+}
+
+/* ---------------- ATTENTION MASK ---------------- */
+function setMaskSize(T) {
+  const el = document.getElementById('maskMatrix');
+  el.style.gridTemplateColumns = `repeat(${T}, 28px)`;
+  let html = '';
+  for (let i = 0; i < T; i++) {
+    for (let j = 0; j < T; j++) {
+      const allowed = j <= i;
+      html += `<div class="cell ${allowed ? 'allowed' : 'masked'}">${allowed ? '✓' : '−'}</div>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+/* ---------------- LOSS CURVE ---------------- */
+function drawLoss() {
+  const svg = document.getElementById('lossSvg');
+  const W = 600, H = 140;
+  const N = 60;
+  const pts = [];
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
+    const base = 8 * Math.exp(-3 * t) + 1.2 + (Math.random() - 0.5) * 0.4 * (1 - t);
+    pts.push([i * (W / (N - 1)), H - (base / 9) * H]);
+  }
+  const d = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const area = d + ` L ${W},${H} L 0,${H} Z`;
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="#7c9cff" stop-opacity=".5"/>
+        <stop offset="100%" stop-color="#7c9cff" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${area}" fill="url(#g1)"/>
+    <path d="${d}" fill="none" stroke="#7c9cff" stroke-width="2"/>
+  `;
+}
+
+/* ---------------- INTERACTIVE GENERATION ---------------- */
+let isGenerating = false;
+
+async function startGeneration() {
+  if (isGenerating) return;
+  
+  const input = document.getElementById('genInput').value.trim().toLowerCase();
+  if (!input || !word2idx.hasOwnProperty(input)) {
+    alert(`Please enter a valid word from the vocabulary. (e.g., ${vocab[Math.floor(Math.random()*5)]})`);
+    return;
+  }
+
+  isGenerating = true;
+  document.getElementById('genBtn').disabled = true;
+  
+  const terminal = document.getElementById('genTerminal');
+  const probChart = document.getElementById('probChart');
+  const probBars = document.getElementById('probBars');
+  const finalOutput = document.getElementById('finalOutput');
+  const finalTokens = document.getElementById('finalTokens');
+
+  terminal.style.display = 'block';
+  probChart.style.display = 'block';
+  finalOutput.style.display = 'none';
+  terminal.innerHTML = '';
+  finalTokens.innerHTML = '';
+
+  const blockSize = 6;
+  const maxNewTokens = 12;
+  let context = [input];
+
+  // Add initial token to final output
+  finalTokens.innerHTML += `<div class="token">${input}</div>`;
+
+  const addLog = (html) => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+  };
+
+  addLog(`<span class="step-title">▶ Initializing generation...</span>`);
+  addLog(`Context: <span class="ctx">[${context.join(', ')}]</span>`);
+  await sleep(500);
+
+  for (let step = 0; step < maxNewTokens; step++) {
+    addLog(`<br><span class="step-title">Step ${step + 1}:</span>`);
+    
+    // Crop context (simulating idx[:, -block_size:])
+    const ctxCond = context.slice(-blockSize);
+    addLog(`Cropped context (block_size=6): <span class="ctx">[${ctxCond.join(', ')}]</span>`);
+    
+    // Get probabilities for the last token
+    const lastToken = ctxCond[ctxCond.length - 1];
+    const probs = getProbs(lastToken);
+    
+    // Sort and get top 5
+    const sortedProbs = Object.entries(probs).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    
+    // Update probability chart
+    probBars.innerHTML = sortedProbs.map(([w, p]) => `
+      <div class="prob-row">
+        <div class="word">${w}</div>
+        <div class="bar-wrap"><div class="bar-fill" style="width: 0%"></div></div>
+        <div class="pct">${(p * 100).toFixed(1)}%</div>
+      </div>
+    `).join('');
+    
+    await sleep(300);
+    
+    // Animate bars
+    const bars = probBars.querySelectorAll('.bar-fill');
+    sortedProbs.forEach(([, p], i) => {
+      bars[i].style.width = `${p * 100}%`;
+    });
+    
+    await sleep(400);
+    
+    addLog(`Softmax → Top 5 probs calculated.`);
+    
+    // Sample next word
+    const nextWord = sampleWord(probs);
+    addLog(`Sampled: <span class="sample">${nextWord}</span>`);
+    
+    // Append to context
+    context.push(nextWord);
+    
+    // Add to final output
+    const tokenEl = document.createElement('div');
+    tokenEl.className = 'token new';
+    tokenEl.textContent = nextWord;
+    finalTokens.appendChild(tokenEl);
+    
+    await sleep(300);
+    
+    if (nextWord === '<END>') {
+      addLog(`<span class="sample">Reached &lt;END&gt; token. Stopping.</span>`);
+      break;
+    }
+  }
+
+  finalOutput.style.display = 'block';
+  addLog(`<br><span class="step-title">✓ Generation complete.</span>`);
+  
+  isGenerating = false;
+  document.getElementById('genBtn').disabled = false;
+}
+
+function clearGeneration() {
+  if (isGenerating) return;
+  document.getElementById('genInput').value = '';
+  document.getElementById('genTerminal').style.display = 'none';
+  document.getElementById('probChart').style.display = 'none';
+  document.getElementById('finalOutput').style.display = 'none';
+  document.getElementById('genTerminal').innerHTML = '';
+  document.getElementById('finalTokens').innerHTML = '';
+}
+
+/* ---------------- NAV HIGHLIGHT ---------------- */
+const navLinks = document.querySelectorAll('.nav a');
+const sections = [...document.querySelectorAll('section.block')];
+window.addEventListener('scroll', () => {
+  const y = window.scrollY + 120;
+  let active = sections[0].id;
+  sections.forEach(s => { if (s.offsetTop <= y) active = s.id; });
+  navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + active));
+});
+
+
+
+/* ---------------- INIT ---------------- */
+buildVocab();
+sampleBatch();
+setMaskSize(6);
+drawLoss();
+</script>
+</body>
+</html>
